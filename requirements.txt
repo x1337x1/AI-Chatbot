@@ -1,0 +1,8 @@
+asyncio==3.4.3
+Flask==3.0.0
+Flask-Cors==4.0.0
+aws-lambda-powertools==2.30.0
+langchain
+langchain-openai
+jmespath
+load_dotenv
