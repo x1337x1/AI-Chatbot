@@ -1,19 +1,17 @@
+import os
 import asyncio
-from flask import (Flask)
+from flask import Flask, request
+import tempfile
 from utils import (returner)
 from flask_cors import (CORS, cross_origin)
 from multiprocessing import Process
 import logging
 from werkzeug.serving import WSGIRequestHandler
-
-# Redirect Werkzeug logs to a null handler to suppress them
-werkzeug_logger = logging.getLogger('werkzeug')
-werkzeug_logger.setLevel(logging.ERROR)
+from controllers.open_ai_controller import OpenAiManager
+from controllers.pinecone_controller import PineconeManager
+from pydash import get
 app = Flask(__name__)
 
-# Configure your own logger
-logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger(__name__)
 
 
 
@@ -22,7 +20,7 @@ cors = CORS(app, allow_headers=['Content-Type', 'Access-Control-Allow-Origin',
 
 def parallelize_functions(*functions):
     processes = []
-    logger.info("Starting multiple processes")
+    print("Starting multiple processes")
     for function in functions:
         p = Process(target=function)
         p.start()
@@ -36,10 +34,55 @@ def parallelize_functions(*functions):
 def get_health_check():
     return returner("healthy")
 
+@app.route('/train', methods=['POST'])
+def train():
+    data = request.get_json() 
+    website = get(data, 'website') 
+    data_type = get(data, 'data_type') 
+    namespace = get(data, 'namespace')  
+
+    if website and data_type and namespace:
+        pinecone_manager = PineconeManager()
+        embbed_vectors = pinecone_manager.embbed_vectors(website, data_type, namespace)
+        return 'AI was trained successfully.', 200
+    else:
+        return 'Invalid JSON data. Missing required fields.', 400 
+
+@app.route('/train/image', methods=['POST'])
+def train_images():
+    image= request.files['image']
+    namespace = request.form.get('namespace')
+    data_type = request.form.get('data_type')
+    if image:
+        image_path = "/tmp/uploaded_image.jpg"
+        image.save(image_path)
+        pinecone_manager = PineconeManager()
+        embbed_vectors = pinecone_manager.embbed_vectors(image_path, data_type, namespace)
+        os.remove(image_path)
+        return 'AI was trained successfully.', 200
+    else:
+        return 'Image file not provided.', 400 
+
+
+@app.route('/query', methods=['POST'])
+def query():
+    data = request.get_json() 
+    query = get(data, 'query') 
+    namespace = get(data, 'namespace') 
+    chat_history = get(data, 'chat_history')
+
+    if query and namespace:
+        open_ai_manager = OpenAiManager()
+        # answer_query = open_ai_manager.generate_similarity_response(query, namespace)
+        answer_query = open_ai_manager.generate_response_chain_with_history(query, namespace, chat_history)
+        return str(answer_query), 200
+    else:
+        return 'Invalid JSON data. Missing required fields.', 400         
+
 
 def start_server():
-    logger.info("Starting server")
-    app.run(host='0.0.0.0', port=1337, debug=True, threaded=True)
+    print("Starting server")
+    app.run(host='0.0.0.0', port=1337, threaded=True)
 
 
 if __name__ == '__main__':

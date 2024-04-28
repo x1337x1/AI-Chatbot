@@ -1,8 +1,13 @@
 asyncio==3.4.3
 Flask==3.0.0
 Flask-Cors==4.0.0
-aws-lambda-powertools==2.30.0
 langchain
 langchain-openai
+beautifulsoup4
 jmespath
 load_dotenv
+faiss-cpu
+lark
+pinecone-client
+langchain_pinecone
+pydash==7.0.7
