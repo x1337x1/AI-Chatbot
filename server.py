@@ -13,6 +13,7 @@ from pydash import get
 app = Flask(__name__)
 
 
+port = int(os.environ.get('SERVER_PORT', 8080))
 
 
 cors = CORS(app, allow_headers=['Content-Type', 'Access-Control-Allow-Origin',
@@ -81,7 +82,7 @@ def query():
 
 def start_server():
     print("Starting server")
-    app.run(host='0.0.0.0', port=1337, threaded=True)
+    app.run(host='0.0.0.0', port=port, threaded=True)
 
 
 if __name__ == '__main__':
