@@ -34,8 +34,8 @@ def parallelize_functions(*functions):
 def get_health_check():
     return returner("healthy")
 
-@app.route('/train', methods=['POST'])
-def train():
+@app.route('/train/website', methods=['POST'])
+def train_by_website():
     data = request.get_json() 
     website = get(data, 'website') 
     data_type = get(data, 'data_type') 
@@ -48,20 +48,19 @@ def train():
     else:
         return 'Invalid JSON data. Missing required fields.', 400 
 
-@app.route('/train/image', methods=['POST'])
-def train_images():
-    image= request.files['image']
-    namespace = request.form.get('namespace')
-    data_type = request.form.get('data_type')
-    if image:
-        image_path = "/tmp/uploaded_image.jpg"
-        image.save(image_path)
+@app.route('/train/inputs', methods=['POST'])
+def train_by_inputs():
+    data = request.get_json() 
+    inputs = get(data, 'inputs') 
+    data_type = get(data, 'data_type') 
+    namespace = get(data, 'namespace')  
+
+    if inputs and data_type and namespace:
         pinecone_manager = PineconeManager()
-        embbed_vectors = pinecone_manager.embbed_vectors(image_path, data_type, namespace)
-        os.remove(image_path)
+        embbed_vectors = pinecone_manager.embbed_vectors(inputs, data_type, namespace)
         return 'AI was trained successfully.', 200
     else:
-        return 'Image file not provided.', 400 
+        return 'Invalid JSON data. Missing required fields.', 400 
 
 
 @app.route('/query', methods=['POST'])

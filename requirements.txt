@@ -6,8 +6,8 @@ langchain-openai
 beautifulsoup4
 jmespath
 load_dotenv
-faiss-cpu
 lark
 pinecone-client
 langchain_pinecone
 pydash==7.0.7
+langchain-community

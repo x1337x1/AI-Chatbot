@@ -9,7 +9,7 @@ from langchain_openai import OpenAIEmbeddings
 from langchain_core.documents import Document
 from pinecone import Pinecone, ServerlessSpec
 from langchain_pinecone import PineconeVectorStore
-from langchain_community.document_loaders.image import UnstructuredImageLoader
+from langchain_community.document_loaders import OnlinePDFLoader
 
 PINECONE_API_KEY = os.getenv('PINECONE_API_KEY')
 PINECONE_ENVIRONMENT = os.getenv('PINECONE_ENVIRONMENT')
@@ -55,8 +55,8 @@ class PineconeManager:
         try:
             if(source == "website"):
                 self.train_by_website(data, namespace)
-            elif(source == "image"):
-                self.train_by_image(data, namespace)    
+            elif(source == "inputs"):
+                self.train_by_input(data, namespace)    
 
 
         except Exception as e:
@@ -68,21 +68,23 @@ class PineconeManager:
             print("start embbedding website data")
             loader = WebBaseLoader(website_url)
             data = loader.load()
-            print("data incoming !!")
             text_splitter = CharacterTextSplitter(chunk_size=1000, chunk_overlap=0)
             docs = text_splitter.split_documents(data)
             vector_store = self.get_vectorstore(namespace)
             vector_store.add_documents(docs)
+            print("train by website was successfull")
         except Exception as e:
             print(f"Error initializing Pinecone: {e}")
             return None 
 
-    def train_by_image(self, image, namespace):
+    def train_by_input(self, text, namespace):
         try:
-            print("start embbedding image data")
-            loader = UnstructuredImageLoader(image)
-            data = loader.load()
-            print("image data",data)
+            print("start embbedding text data")
+            text_splitter = CharacterTextSplitter(chunk_size=1000, chunk_overlap=0)
+            docs = text_splitter.create_documents([text])
+            vector_store = self.get_vectorstore(namespace)
+            vector_store.add_documents(docs)
+            print("train by inputs was successfull")
         except Exception as e:
             print(f"Error initializing Pinecone: {e}")
             return None 
