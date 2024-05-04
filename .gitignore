@@ -2,3 +2,4 @@ venv
 .vscode
 .env
 controllers/__pycache__/
+utils/__pycache__/
