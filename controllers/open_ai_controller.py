@@ -25,29 +25,6 @@ class OpenAiManager:
         self.llm = ChatOpenAI(api_key=os.getenv('OPENAI_API_KEY'))
         self.pinecone_manager = PineconeManager()
 
-    def generate_similarity_response(self, query, namespace):
-        print("generating a response")
-        vector_store = self.pinecone_manager.get_vectorstore(namespace)
-        search = vector_store.similarity_search(query)
-        answer = search[0].page_content
-        return answer
-
-
-    def generate_response_chain(self, query, role, namespace):
-        vector_store = self.pinecone_manager.get_vectorstore(namespace)
-        retriever = vector_store.as_retriever()
-        prompt = ChatPromptTemplate.from_template("""Answer the following question based only on the provided context:
-        <context>
-        {context}
-        </context> 
-        Question: {input}""")
-        document_chain = create_stuff_documents_chain(self.llm, prompt)
-        retrieval_chain = create_retrieval_chain(retriever, document_chain)
-        response = retrieval_chain.invoke({"input": query})
-        print("answer => ",response["answer"])
-        return response["answer"]
-
-
     def generate_response_chain_with_history(self, question, namespace, records):
         try:
             vector_store = self.pinecone_manager.get_vectorstore(namespace)
