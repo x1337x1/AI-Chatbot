@@ -72,7 +72,6 @@ def query():
 
     if query and namespace:
         open_ai_manager = OpenAiManager()
-        # answer_query = open_ai_manager.generate_similarity_response(query, namespace)
         answer_query = open_ai_manager.generate_response_chain_with_history(query, namespace, chat_history)
         return str(answer_query), 200
     else:
