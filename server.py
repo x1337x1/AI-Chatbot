@@ -1,3 +1,5 @@
+import sys
+sys.dont_write_bytecode = True
 import os
 import asyncio
 from flask import Flask, request
@@ -20,6 +22,9 @@ app = Flask(__name__)
 cors = CORS(app, allow_headers=['Content-Type', 'Access-Control-Allow-Origin',
                                 'Access-Control-Allow-Headers', 'Access-Control-Allow-Methods', 'Authorization'])
 
+ERROR_MSG = "Oops! Something went wrong"
+SUCCESS_MSG = "Hooray! Your request was successfully processed"
+
 def parallelize_functions(*functions):
     processes = []
     print("Starting multiple processes")
@@ -38,46 +43,62 @@ def get_health_check():
 
 @app.route('/train/website', methods=['POST'])
 def train_by_website():
-    data = request.get_json() 
-    website = get(data, 'website') 
-    data_type = get(data, 'data_type') 
-    namespace = get(data, 'namespace')  
+    json_data = request.get_json() 
+    data = get(json_data, 'data') 
+    source = get(json_data, 'source') 
+    namespace = get(json_data, 'namespace')  
+    tenant_id = get(json_data, 'tenant_id')
 
-    if website and data_type and namespace:
+    if data and source and namespace and tenant_id:
         pinecone_manager = PineconeManager()
-        embbed_vectors = pinecone_manager.embbed_vectors(website, data_type, namespace)
-        return 'AI was trained successfully.', 200
+        embbed_vectors = pinecone_manager.embbed_vectors(json_data)
+        return jsonify({"message": SUCCESS_MSG}), 200
     else:
-        return 'Invalid JSON data. Missing required fields.', 400 
+        return jsonify({"message": ERROR_MSG}), 400
 
 @app.route('/train/inputs', methods=['POST'])
 def train_by_inputs():
-    data = request.get_json() 
-    inputs = get(data, 'inputs') 
-    data_type = get(data, 'data_type') 
-    namespace = get(data, 'namespace')  
+    json_data = request.get_json() 
+    data = get(json_data, 'data') 
+    source = get(json_data, 'source') 
+    namespace = get(json_data, 'namespace')  
+    tenant_id = get(json_data, 'tenant_id')
 
-    if inputs and data_type and namespace:
+    if data and source and namespace and tenant_id:
         pinecone_manager = PineconeManager()
-        embbed_vectors = pinecone_manager.embbed_vectors(inputs, data_type, namespace)
-        return 'AI was trained successfully.', 200
+        embbed_vectors = pinecone_manager.embbed_vectors(json_data)
+        return jsonify({"message": SUCCESS_MSG}), 200
     else:
-        return 'Invalid JSON data. Missing required fields.', 400 
+        return jsonify({"message": ERROR_MSG}), 400
 
+@app.route('/train/delete', methods=['POST'])
+def delete_vector_data():
+    json_data = request.get_json() 
+    vector_ids = get(json_data, 'vector_ids') 
+    namespace = get(json_data, 'namespace')  
+    tenant_id = get(json_data, 'tenant_id')
+
+    if vector_ids and tenant_id and namespace and tenant_id:
+        pinecone_manager = PineconeManager()
+        embbed_vectors = pinecone_manager.delete_vector_data(json_data)
+        return jsonify({"message": SUCCESS_MSG}), 200
+    else:
+        return jsonify({"message": ERROR_MSG}), 400
 
 @app.route('/query', methods=['POST'])
 def query():
     data = request.get_json() 
-    query = get(data, 'query') 
+    query = get(data, 'question') 
     namespace = get(data, 'namespace') 
     chat_history = get(data, 'chat_history')
+    tenant_id = get(data, 'tenant_id')
 
-    if query and namespace:
+    if query and namespace and tenant_id:
         open_ai_manager = OpenAiManager()
-        answer_query = open_ai_manager.generate_response_chain_with_history(query, namespace, chat_history)
-        return str(answer_query), 200
+        answer_query = open_ai_manager.generate_response_chain_with_history(data)
+        return jsonify({"message": SUCCESS_MSG}), 200
     else:
-        return 'Invalid JSON data. Missing required fields.', 400  
+        return jsonify({"message": ERROR_MSG}), 400
 
 
 @app.route('/register', methods=['POST'])
@@ -90,9 +111,9 @@ def register():
     if email and name and password:
         authentication_class = Authentication()
         response = authentication_class.register(data)
-        return jsonify({"message": response}), 200
+        return jsonify({"message": "Account was registered"}), 200
     else:
-        return jsonify({"message": 'Invalid JSON data. Missing required fields.'}), 400
+        return jsonify({"message": ERROR_MSG}), 400
 
 @app.route('/login', methods=['POST'])
 def login():
@@ -107,7 +128,7 @@ def login():
         else:
             return jsonify({"message": "Login Failed"}), 400
     else:
-        return jsonify({"message": 'Invalid JSON data. Missing required fields.'}), 400
+        return jsonify({"message": ERROR_MSG}), 400
 
 def start_server():
     print("Starting server")
