@@ -9,7 +9,9 @@ import logging
 from werkzeug.serving import WSGIRequestHandler
 from controllers.open_ai_controller import OpenAiManager
 from controllers.pinecone_controller import PineconeManager
+from db.authentication.account_collection import Authentication
 from pydash import get
+from flask import jsonify
 app = Flask(__name__)
 
 
@@ -75,8 +77,37 @@ def query():
         answer_query = open_ai_manager.generate_response_chain_with_history(query, namespace, chat_history)
         return str(answer_query), 200
     else:
-        return 'Invalid JSON data. Missing required fields.', 400         
+        return 'Invalid JSON data. Missing required fields.', 400  
 
+
+@app.route('/register', methods=['POST'])
+def register():
+    data = request.get_json() 
+    email = get(data, 'email')
+    name = get(data, 'name')
+    password = get(data, 'password')
+
+    if email and name and password:
+        authentication_class = Authentication()
+        response = authentication_class.register(data)
+        return jsonify({"message": response}), 200
+    else:
+        return jsonify({"message": 'Invalid JSON data. Missing required fields.'}), 400
+
+@app.route('/login', methods=['POST'])
+def login():
+    data = request.get_json() 
+    email = get(data, 'email')
+    password = get(data, 'password')
+    if email and password:
+        authentication_class = Authentication()
+        response = authentication_class.login(data)
+        if response == 200:
+            return jsonify({"message": "Login was successful"}), 200
+        else:
+            return jsonify({"message": "Login Failed"}), 400
+    else:
+        return jsonify({"message": 'Invalid JSON data. Missing required fields.'}), 400
 
 def start_server():
     print("Starting server")
