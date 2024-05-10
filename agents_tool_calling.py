@@ -16,8 +16,7 @@ from langchain.tools.retriever import create_retriever_tool
 from langchain.utilities.tavily_search import TavilySearchAPIWrapper
 from langchain_community.tools.tavily_search import TavilySearchResults
 from langchain import hub
-from langchain.agents import create_openai_functions_agent
-from langchain.agents import AgentExecutor
+from langchain.agents import  create_tool_calling_agent, AgentExecutor
 from dotenv import load_dotenv
 load_dotenv()
 
@@ -30,7 +29,7 @@ pinecone_manager = PineconeManager()
 search = TavilySearchAPIWrapper()
 tavily_tool = TavilySearchResults(api_wrapper=search)
 
-def generate_response_chain_with_agents(namespace):
+def agents_with_tool_calling(namespace):
     vector_store = pinecone_manager.get_vectorstore(namespace)
     prompt = ChatPromptTemplate.from_messages([
         ("system", "Answer the user's questions based on the context: {context}"),
@@ -41,7 +40,7 @@ def generate_response_chain_with_agents(namespace):
     retriever_tool = create_retriever_tool(retriever, "langsmith_search", "Search for information about LangSmith. For any questions about LangSmith, you must use this tool!")
     tools = [retriever_tool, tavily_tool]
     agent_prompt = hub.pull("hwchase17/openai-functions-agent") ## prompt
-    agent = create_openai_functions_agent(llm, tools, agent_prompt)
+    agent = create_tool_calling_agent(llm, tools, agent_prompt)
     agent_executor = AgentExecutor(agent=agent, tools=tools, verbose=True)
     return agent_executor
 
@@ -55,7 +54,7 @@ def process_chat(agent_executor, question, chat_history):
 
 
 if __name__ == "__main__":
-    agent = generate_response_chain_with_agents("langsmith_namespace")
+    agent = agents_with_tool_calling("langsmith_namespace")
     # Initialize chat history
     chat_history = []
 

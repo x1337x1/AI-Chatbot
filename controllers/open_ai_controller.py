@@ -57,7 +57,7 @@ class OpenAiManager:
                 ("user", "{input}")
             ])
             chain = create_stuff_documents_chain(self.llm, prompt)
-            retriever = vector_store.as_retriever(search_kwargs={"k": 3})
+            retriever = vector_store.as_retriever()
                  
             retriever_prompt = ChatPromptTemplate.from_messages([
                 MessagesPlaceholder(variable_name="chat_history"),
