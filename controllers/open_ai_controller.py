@@ -52,7 +52,7 @@ class OpenAiManager:
         try:
             vector_store = self.pinecone_manager.get_vectorstore(namespace)
             prompt = ChatPromptTemplate.from_messages([
-                ("system", "Answer the user's questions based on the context: {context}"),
+                ("system", "You are an assistant the learns from website data, answer the user question based on the website data: {context}"),
                 MessagesPlaceholder(variable_name="chat_history"),
                 ("user", "{input}")
             ])

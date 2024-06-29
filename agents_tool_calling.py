@@ -37,8 +37,9 @@ def agents_with_tool_calling(namespace):
         ("user", "{input}")
     ])
     retriever = vector_store.as_retriever() ## method that we use to get documents from pinecone
-    retriever_tool = create_retriever_tool(retriever, "langsmith_search", "Search for information about LangSmith. For any questions about LangSmith, you must use this tool!")
-    tools = [retriever_tool, tavily_tool]
+    retriever_tool = create_retriever_tool(retriever, "chatbot_search", "You are a chatbot that answers questions and chat with clients. For any questions about anything except for products or product recommendation, you must use this tool!")
+    retriever_tool_products = create_retriever_tool(retriever, "products_search", "Answer any question about products or product recommendation. For any questions about products or product recommendation, you must use this tool!")
+    tools = [retriever_tool, retriever_tool_products, tavily_tool]
     agent_prompt = hub.pull("hwchase17/openai-functions-agent") ## prompt
     agent = create_tool_calling_agent(llm, tools, agent_prompt)
     agent_executor = AgentExecutor(agent=agent, tools=tools, verbose=True)
@@ -50,11 +51,11 @@ def process_chat(agent_executor, question, chat_history):
         "chat_history": chat_history,
         "input": question,
     })
-    return response
+    return response['output']
 
 
 if __name__ == "__main__":
-    agent = agents_with_tool_calling("langsmith_namespace")
+    agent = agents_with_tool_calling("1337_namespace")
     # Initialize chat history
     chat_history = []
 
@@ -65,4 +66,4 @@ if __name__ == "__main__":
         response = process_chat(agent, user_input, chat_history)
         chat_history.append(HumanMessage(content=user_input))
         chat_history.append(AIMessage(content= str(response) ))
-        print("Assistant:", response)
+        print("response :", response)

@@ -13,7 +13,7 @@ from pydash import get
 app = Flask(__name__)
 
 
-port = int(os.environ.get('SERVER_PORT', 8080))
+port = int(os.environ.get('SERVER_PORT', 1337))
 
 
 cors = CORS(app, allow_headers=['Content-Type', 'Access-Control-Allow-Origin',
