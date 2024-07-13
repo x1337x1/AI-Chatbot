@@ -1,23 +1,27 @@
 import os
 import asyncio
-from flask import Flask, request
+import logging
 import tempfile
-from utils import (returner)
+from flask import Flask, request
 from flask_cors import (CORS, cross_origin)
 from multiprocessing import Process
-import logging
 from werkzeug.serving import WSGIRequestHandler
 from controllers.open_ai_controller import OpenAiManager
 from controllers.pinecone_controller import PineconeManager
+from controllers.account_controller import Account
 from pydash import get
+
+
+account = Account()
+
 app = Flask(__name__)
-
-
 port = int(os.environ.get('SERVER_PORT', 1337))
-
-
 cors = CORS(app, allow_headers=['Content-Type', 'Access-Control-Allow-Origin',
                                 'Access-Control-Allow-Headers', 'Access-Control-Allow-Methods', 'Authorization'])
+
+# Configure logging
+logging.basicConfig(level=logging.DEBUG, format='%(levelname)s - %(message)s')
+
 
 def parallelize_functions(*functions):
     processes = []
@@ -33,7 +37,34 @@ def parallelize_functions(*functions):
 @app.route('/health', methods=['GET'])
 @cross_origin()
 def get_health_check():
-    return returner("healthy")
+    return print("healthy")
+
+@app.route('/signup', methods=['POST'])
+def signup():
+    data = request.get_json() 
+    email = get(data, 'email') 
+    name = get(data, 'name') 
+    password = get(data, 'password') 
+
+    if email and name and password:
+        register_user = account.signup(data)
+        return { "message": register_user }, 200
+    else:
+        return { "message": register_user }, 400 
+
+@app.route('/login', methods=['POST'])
+def login():
+    data = request.json
+    email = data.get('email')
+    password = data.get('password')
+    
+    if email and password:
+         return account.login(data)
+    else:
+         return jsonify(error='Email and password are required'), 400
+
+
+
 
 @app.route('/train/website', methods=['POST'])
 def train_by_website():
@@ -49,19 +80,6 @@ def train_by_website():
     else:
         return 'Invalid JSON data. Missing required fields.', 400 
 
-@app.route('/train/inputs', methods=['POST'])
-def train_by_inputs():
-    data = request.get_json() 
-    inputs = get(data, 'inputs') 
-    data_type = get(data, 'data_type') 
-    namespace = get(data, 'namespace')  
-
-    if inputs and data_type and namespace:
-        pinecone_manager = PineconeManager()
-        embbed_vectors = pinecone_manager.embbed_vectors(inputs, data_type, namespace)
-        return 'AI was trained successfully.', 200
-    else:
-        return 'Invalid JSON data. Missing required fields.', 400 
 
 
 @app.route('/query', methods=['POST'])
@@ -80,8 +98,9 @@ def query():
 
 
 def start_server():
-    print("Starting server")
+    app.run(debug=True)
     app.run(host='0.0.0.0', port=port, threaded=True)
+    logging.info('Flask server started successfully.')
 
 
 if __name__ == '__main__':
