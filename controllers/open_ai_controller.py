@@ -1,4 +1,5 @@
 import os
+import getpass
 from dotenv import load_dotenv
 load_dotenv()
 from langchain_openai import ChatOpenAI
@@ -11,9 +12,18 @@ from langchain.chains import create_retrieval_chain
 from langchain.chains import create_history_aware_retriever
 from langchain_core.prompts import MessagesPlaceholder
 from langchain_core.messages import HumanMessage, AIMessage
+from langchain_community.tools.tavily_search import TavilySearchResults
+from langchain_anthropic import ChatAnthropic
+from langgraph.checkpoint.sqlite import SqliteSaver
+from langgraph.prebuilt import create_react_agent
 from pinecone import Pinecone
 
 
+os.environ['LANGCHAIN_TRACING_V2'] = os.getenv('LANGSMITH_TRACING_V2')
+os.environ['LANGCHAIN_ENDPOINT'] = os.getenv('LANGSMITH_ENDPOINT')
+os.environ['LANGCHAIN_API_KEY'] = os.getenv('LANGSMITH_API_KEY')
+os.environ['LANGCHAIN_PROJECT'] = os.getenv('LANGSMITH_PROJECT')
+os.environ['TAVILY_API_KEY'] = os.getenv('TAVILY')
 embeddings = OpenAIEmbeddings()
 
 PINECONE_API_KEY = os.getenv('PINECONE_API_KEY')
@@ -46,10 +56,29 @@ class OpenAiManager:
             retrieval_chain = create_retrieval_chain(history_aware_retriever, chain)
             chat_history = self.append_history(records)
             response = retrieval_chain.invoke({"chat_history": chat_history, "input": question})
+            
             return response["answer"]
         except Exception as e:
             print(f"An error occurred during generate response chain with history: {e}")
     
+    def generate_response_chain_with_agent(self, question, namespace, records):
+        try:
+            vector_store = self.pinecone_manager.get_vectorstore(namespace)
+            retriever = vector_store.as_retriever()
+            memory = SqliteSaver.from_conn_string(":memory:")
+            model = self.llm
+            search = TavilySearchResults(max_results=2)
+            tools = [search, retriever]
+            agent_executor = create_react_agent(model, tools, checkpointer=memory)
+            config = {"configurable": {"thread_id": "xyw1"}}
+            response = agent_executor.invoke(
+                {"messages": [HumanMessage(content=question)]}, config
+            )
+            print('response =>', response['messages'][-1].content)
+            return response['messages'][-1].content
+        except Exception as e:
+            print(f"An error occurred during generate response chain with agent: {e}")
+
 
     def append_history(self, records):
         chat_history = []

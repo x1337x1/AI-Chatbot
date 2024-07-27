@@ -26,11 +26,10 @@ class Account:
                 'user_id': str(uuid.uuid4()),
                 'name': name,
                 'email': email,
-                'password': str(hashed_password)
+                 'password': hashed_password.decode('utf-8')  # Decode to store as a string
             }
             document = Account_Collection.insert_one(user_data)
-            print('User Sign Up was successfull =>', ducument.inserted_id )
-            return jsonify(message='User Sign Up was successful')
+            return jsonify('User Sign Up was successful')
 
         except Exception as e:
             return jsonify(error='Error retrieving account collection', message=str(e))
@@ -42,17 +41,13 @@ class Account:
     
             # Retrieve user data from MongoDB
             Account_Collection = self.db.account_collection()
-            user_data = Account_Collection.find_one({'email': email})
-    
-            if not user_data:
-                return jsonify(error='User not found'), 200
-    
+            user_data = Account_Collection.find_one({'email': email}) 
             # Check if the password matches
             hashed_password = user_data['password'].encode('utf-8')
             if bcrypt.checkpw(password.encode('utf-8'), hashed_password):
-                return jsonify(message='Login successful'), 200
+                return jsonify({'message':'Login successful'}), 200
             else:
-                return jsonify(error='Invalid password'), 401
+                return jsonify({'error': 'Invalid username or password'}), 401
     
         except Exception as e:
-            return jsonify(error='Error during login', message=str(e)), 500
+            return jsonify({'error': str(e)}), 500
