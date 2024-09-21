@@ -8,7 +8,7 @@ from flask_cors import (CORS, cross_origin)
 from multiprocessing import Process
 from werkzeug.serving import WSGIRequestHandler
 from routes.authentication import auth_routes
-from routes.queries import queries_routes
+from routes.queries import queries_routes, search_engine_routes
 from routes.training import training_routes
 
 
@@ -49,5 +49,6 @@ def start_server():
 if __name__ == '__main__':
     auth_routes(app)
     queries_routes(app)
+    search_engine_routes(app)
     training_routes(app)
     parallelize_functions(start_server)

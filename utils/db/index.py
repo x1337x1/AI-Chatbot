@@ -31,3 +31,13 @@ class Database:
         except Exception as e:
             print('Error retrieving account collection:', e)
             return None
+
+    def usage_collection(self):
+        try:
+            collection = self.db['Usage']
+            print('Usage collection retrieved')
+            return collection
+
+        except Exception as e:
+            print('Error retrieving usage collection:', e)
+            return None

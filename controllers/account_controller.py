@@ -4,6 +4,7 @@ import bcrypt
 import uuid
 from dotenv import load_dotenv
 from utils.db.index import Database
+from controllers.usage_controller import Usage
 from pydash import get
 from flask import jsonify
 # Configure logging
@@ -13,22 +14,30 @@ logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(
 class Account:
     def __init__(self):
         self.db = Database()
+        self.usage = Usage()
 
 
     def signup(self, data):
         try:
-            name = get(data, 'name') 
+            first_name = get(data, 'first_name') 
+            last_name = get(data, 'last_name') 
             email = get(data, 'email')  
             password = get(data, 'password')
+            tenant_id = str(uuid.uuid4())
+            tenant_fingerprint = get(data, 'fingerprint')
             hashed_password = bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt())
             Account_Collection = self.db.account_collection()
             user_data = {
-                'user_id': str(uuid.uuid4()),
-                'name': name,
+                'tenant_id': tenant_id,
+                'first_name': first_name,
+                'last_name': last_name,
                 'email': email,
-                 'password': hashed_password.decode('utf-8')  # Decode to store as a string
+                'fingerprint': tenant_fingerprint,
+                'password': hashed_password.decode('utf-8')  # Decode to store as a string
             }
-            document = Account_Collection.insert_one(user_data)
+            Account_Collection.insert_one(user_data) # create account table for tenant
+            self.usage.init_usage_collection(tenant_id) # create usage table for tenant
+
             return jsonify('User Sign Up was successful')
 
         except Exception as e:

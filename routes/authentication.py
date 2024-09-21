@@ -11,10 +11,11 @@ def auth_routes(app):
         
         data = request.get_json() 
         email = get(data, 'email') 
-        name = get(data, 'name') 
+        first_name = get(data, 'first_name') 
+        last_name = get(data, 'last_name') 
         password = get(data, 'password') 
-    
-        if email and name and password:
+        tenant_fingerprint = get(data, 'fingerprint')
+        if email and first_name and last_name and tenant_fingerprint and password:
             register_user = account.signup(data)
             return jsonify({"message": "register was successfull"}), 200
         else:

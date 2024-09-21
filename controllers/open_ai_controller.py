@@ -1,6 +1,7 @@
 import os
 import getpass
 from dotenv import load_dotenv
+from pydash import get
 load_dotenv()
 from langchain_openai import ChatOpenAI
 from langchain_core.prompts import ChatPromptTemplate
@@ -36,8 +37,11 @@ class OpenAiManager:
         self.pinecone_manager = PineconeManager()
 
 
-    def generate_response_chain_with_history(self, question, namespace, records):
+    def generate_response_chain_with_history(self, data):
         try:
+            query = get(data, 'query') 
+            namespace = get(data, 'namespace') 
+            chat_history = get(data, 'chat_history', [])
             vector_store = self.pinecone_manager.get_vectorstore(namespace)
             prompt = ChatPromptTemplate.from_messages([
                 ("system", "You are an assistant the learns from website data, answer the user question based on the website data: {context}"),
@@ -54,33 +58,32 @@ class OpenAiManager:
             ])
             history_aware_retriever = create_history_aware_retriever(self.llm, retriever, retriever_prompt)
             retrieval_chain = create_retrieval_chain(history_aware_retriever, chain)
-            chat_history = self.append_history(records)
-            response = retrieval_chain.invoke({"chat_history": chat_history, "input": question})
-            
-            return response["answer"]
+            chat_history = self.append_history(chat_history)
+            response = retrieval_chain.invoke({"chat_history": chat_history, "input": query})
+            data['response'] = response
+            return data
         except Exception as e:
             print(f"An error occurred during generate response chain with history: {e}")
     
-    def generate_response_chain_with_agent(self, question, namespace, records):
+
+    def generate_response_chain_search_engine(self, data):
         try:
-            vector_store = self.pinecone_manager.get_vectorstore(namespace)
-            retriever = vector_store.as_retriever()
-            memory = SqliteSaver.from_conn_string(":memory:")
-            model = self.llm
-            search = TavilySearchResults(max_results=2)
-            tools = [search, retriever]
-            agent_executor = create_react_agent(model, tools, checkpointer=memory)
-            config = {"configurable": {"thread_id": "xyw1"}}
-            response = agent_executor.invoke(
-                {"messages": [HumanMessage(content=question)]}, config
+            tool = TavilySearchResults(
+                max_results=5,
+                search_depth="advanced",
+                include_answer=True,
+                include_raw_content=True,
+                include_images=True,
             )
-            print('response =>', response['messages'][-1].content)
-            return response['messages'][-1].content
+            response = tool.invoke({"query": data['query']})    
+            data['response'] = response   
+            return data
         except Exception as e:
-            print(f"An error occurred during generate response chain with agent: {e}")
+            print(f"An error occurred during generate response chain with history: {e}")
 
 
     def append_history(self, records):
+        print(records)
         chat_history = []
         try:
             for data in records:
