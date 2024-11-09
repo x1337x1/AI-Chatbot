@@ -63,28 +63,51 @@ class PineconeManager:
             print(f"Error initializing Pinecone: {e}")
             return None 
 
-    def train_by_website(self, website_url, namespace):
+    def train_by_url(self, data):
         try:
-            print("start embbedding website data")
+            # Extract website_url and namespace from the data object
+            website_url = data.get('website_url')
+            namespace = data.get('namespace')
+    
+            # Validate the input
+            if not website_url or not namespace:
+                raise ValueError("Missing 'website_url' or 'namespace' in the data object")
+    
+            print("start embedding website data")
             loader = WebBaseLoader(website_url)
-            data = loader.load()
+            page_data = loader.load()
+            
             text_splitter = CharacterTextSplitter(chunk_size=1000, chunk_overlap=0)
-            docs = text_splitter.split_documents(data)
+            docs = text_splitter.split_documents(page_data)
+            
+            # Retrieve the vector store using the namespace
             vector_store = self.get_vectorstore(namespace)
             vector_store.add_documents(docs)
-            print("train by website was successfull")
+            
+            print("Training by website was successful")
+            
         except Exception as e:
             print(f"Error initializing Pinecone: {e}")
-            return None 
+            return None
 
-    def train_by_input(self, text, namespace):
+
+    def train_by_input(self, data):
         try:
-            print("start embbedding text data")
+            text = data.get('input')
+            namespace = data.get('namespace')
+            if not text or not namespace:
+                raise ValueError("Missing 'input' or 'namespace' in the data object")
+    
+            print("start embedding text data")
             text_splitter = CharacterTextSplitter(chunk_size=1000, chunk_overlap=0)
             docs = text_splitter.create_documents([text])
+            
+            # Retrieve the vector store using the namespace
             vector_store = self.get_vectorstore(namespace)
             vector_store.add_documents(docs)
-            print("train by inputs was successfull")
+            
+            print("Training by input was successful")
+            
         except Exception as e:
             print(f"Error initializing Pinecone: {e}")
-            return None 
+            return None
