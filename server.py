@@ -21,7 +21,8 @@ cors = CORS(app, allow_headers=['Content-Type', 'Access-Control-Allow-Origin',
 @app.route('/health', methods=['GET'])
 @cross_origin()
 def get_health_check():
-    return "healthy"
+    return "healthy", 200
+
 
 
 def process_queries():

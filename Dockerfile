@@ -1,5 +1,5 @@
 # Use the official Python image as a base image
-FROM python:3.12.3-alpine3.19
+FROM python:3.11.7-bookworm
 
 # Set the working directory in the container
 WORKDIR /app
@@ -13,11 +13,8 @@ RUN pip install --no-cache-dir -r requirements.txt
 # Copy the rest of the application code to the working directory
 COPY . .
 
-# Setting Running port for the container 
-ENV SERVER_PORT=8080
-
 # Expose the port the app runs on
-EXPOSE 8080
+EXPOSE 5001
 
 # Command to run the application
 CMD ["python", "server.py"]
