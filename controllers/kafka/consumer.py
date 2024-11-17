@@ -1,6 +1,7 @@
 import os
 from confluent_kafka import Consumer
 from controllers.pinecone_controller import PineconeManager
+from controllers.open_ai_controller import QueryHandler
 import asyncio
 import json
 from dotenv import load_dotenv
@@ -8,14 +9,17 @@ load_dotenv()
 kafka_url = os.getenv('KAFKA_URL', 'localhost')
 
 topics = ['process_koala']
-training_event_input = 'nervana_training_input'
-training_event_file = 'nervana_training_file'
-training_event_url = 'nervana_training_url'
+training_event_input = 'koala_training_input'
+training_event_file = 'koala_training_file'
+training_event_url = 'koala_training_url'
+query_event = 'koala_query'
+
 
 class KafkaConsumer:
     def __init__(self):
         self.consumer = self.initialize_kafka_consumers()
         self.training_handler = PineconeManager()
+        self.query_handler = QueryHandler()
         self.running = True  
 
     def initialize_kafka_consumers(self):
@@ -56,13 +60,14 @@ class KafkaConsumer:
                 print('Data', data)
                 if(topic == topics[0]):
                     if(event == training_event_input):  
-                        print('process input data', data)   
                         self.training_handler.train_by_input(data)
                     elif(event == training_event_url):
-                        self.training_handler.train_by_website(data) 
+                        self.training_handler.train_by_url(data) 
                     elif(event == training_event_file):
                         ## call function to process file
-                        print('train by file')                                 
+                        print('train by file')   
+                    elif(event == query_event):
+                        self.query_handler.generate_response_chain_with_history(data)         
                 else:
                     print("Unrecognised topic:", topic)
             except Exception as err:

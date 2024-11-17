@@ -15,8 +15,8 @@ from langchain_core.prompts import MessagesPlaceholder
 from langchain_core.messages import HumanMessage, AIMessage
 from langchain_community.tools.tavily_search import TavilySearchResults
 from langchain_anthropic import ChatAnthropic
-from langgraph.checkpoint.sqlite import SqliteSaver
 from langgraph.prebuilt import create_react_agent
+from controllers.kafka.producer import ProducerController
 from pinecone import Pinecone
 
 
@@ -31,16 +31,18 @@ PINECONE_API_KEY = os.getenv('PINECONE_API_KEY')
 PINECONE_ENVIRONMENT = os.getenv('PINECONE_ENVIRONMENT')
 PINECONE_INDEX_NAME = os.getenv('PINECONE_INDEX_NAME')
 
-class OpenAiManager:
+class QueryHandler:
     def __init__(self):
         self.llm = ChatOpenAI(api_key=os.getenv('OPENAI_API_KEY'))
         self.pinecone_manager = PineconeManager()
+        self.kafka_producer = ProducerController()
 
 
     def generate_response_chain_with_history(self, data):
         try:
             query = get(data, 'query') 
             namespace = get(data, 'namespace') 
+            user_id = data.get('userId')
             chat_history = get(data, 'chat_history', [])
             vector_store = self.pinecone_manager.get_vectorstore(namespace)
             prompt = ChatPromptTemplate.from_messages([
@@ -60,14 +62,16 @@ class OpenAiManager:
             retrieval_chain = create_retrieval_chain(history_aware_retriever, chain)
             chat_history = self.append_history(chat_history)
             response = retrieval_chain.invoke({"chat_history": chat_history, "input": query})
-            data['response'] = response
-            return data
+            data['response'] = response['answer']
+            print('response =>', data)
+            self.kafka_producer.send_answer(data, user_id)
         except Exception as e:
             print(f"An error occurred during generate response chain with history: {e}")
     
 
     def generate_response_chain_search_engine(self, data):
         try:
+            user_id = data.get('userId')
             tool = TavilySearchResults(
                 max_results=5,
                 search_depth="advanced",
@@ -76,8 +80,9 @@ class OpenAiManager:
                 include_images=True,
             )
             response = tool.invoke({"query": data['query']})    
-            data['response'] = response   
-            return data
+            data['response'] = response  
+            print('response =>', data)
+            self.kafka_producer.send_answer(data, user_id) 
         except Exception as e:
             print(f"An error occurred during generate response chain with history: {e}")
 

@@ -9,13 +9,12 @@ from multiprocessing import Process
 from werkzeug.serving import WSGIRequestHandler
 from controllers.kafka.consumer import KafkaConsumer
 from threading import Thread
+
 app = Flask(__name__)
 port = int(os.environ.get('SERVER_PORT', 1338))
 cors = CORS(app, allow_headers=['Content-Type', 'Access-Control-Allow-Origin',
                                 'Access-Control-Allow-Headers', 'Access-Control-Allow-Methods', 'Authorization'])
 
-# Configure logging
-logging.basicConfig(level=logging.DEBUG)
 
 
 

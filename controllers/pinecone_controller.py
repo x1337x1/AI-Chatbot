@@ -10,6 +10,7 @@ from langchain_core.documents import Document
 from pinecone import Pinecone, ServerlessSpec
 from langchain_pinecone import PineconeVectorStore
 from langchain_community.document_loaders import OnlinePDFLoader
+from controllers.kafka.producer import ProducerController
 
 PINECONE_API_KEY = os.getenv('PINECONE_API_KEY')
 PINECONE_ENVIRONMENT = os.getenv('PINECONE_ENVIRONMENT')
@@ -23,6 +24,7 @@ class PineconeManager:
     def __init__(self):
         print("")
         self.pc = Pinecone(api_key=PINECONE_API_KEY)
+        self.kafka_producer = ProducerController()
         
     def get_vectorstore(self, namespace):
         try:
@@ -68,7 +70,7 @@ class PineconeManager:
             # Extract website_url and namespace from the data object
             website_url = data.get('website_url')
             namespace = data.get('namespace')
-    
+            user_id = data.get('userId')
             # Validate the input
             if not website_url or not namespace:
                 raise ValueError("Missing 'website_url' or 'namespace' in the data object")
@@ -83,7 +85,8 @@ class PineconeManager:
             # Retrieve the vector store using the namespace
             vector_store = self.get_vectorstore(namespace)
             vector_store.add_documents(docs)
-            
+            data['status'] = 1
+            self.kafka_producer.send_training_status(data, user_id)
             print("Training by website was successful")
             
         except Exception as e:
@@ -95,6 +98,7 @@ class PineconeManager:
         try:
             text = data.get('input')
             namespace = data.get('namespace')
+            user_id = data.get('userId')
             if not text or not namespace:
                 raise ValueError("Missing 'input' or 'namespace' in the data object")
     
@@ -105,7 +109,8 @@ class PineconeManager:
             # Retrieve the vector store using the namespace
             vector_store = self.get_vectorstore(namespace)
             vector_store.add_documents(docs)
-            
+            data['status'] = 1
+            self.kafka_producer.send_training_status(data, user_id)
             print("Training by input was successful")
             
         except Exception as e:
