@@ -42,5 +42,6 @@ start_background_tasks()
 
 
 if __name__ == '__main__':
+    print('start service')
     # Parallelize Flask server and Kafka consumer
     app.run(host='0.0.0.0', port=port, threaded=True)
